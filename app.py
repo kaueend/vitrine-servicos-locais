@@ -1,68 +1,64 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect
 
 app = Flask(__name__)
 
-# Base de dados simulada na memória (Tabela provisória para o MVP)
-profissionais = [
+# Lista inicial com os 3 profissionais para o teu MVP da UNIVALI
+prestadores = [
     {
         "nome": "Carlos Andrade",
         "categoria": "Construção Civil",
-        "localizacao": "Bairro das Nações / Centro",
-        "especialidade": "Alvenaria e Reparos",
-        "telefone": "5547999999999"
+        "bairro": "Bairro das Nações / Centro",
+        "descricao": "Foco: Alvenaria e Reparos",
+        "whatsapp": "47999999999"
     },
     {
         "nome": "Juliana Souza",
         "categoria": "Estética",
-        "localizacao": "Comunidade Novo Horizonte",
-        "especialidade": "Manicure e Designer de Unhas",
-        "telefone": "5547988888888"
+        "bairro": "Comunidade Novo Horizonte",
+        "descricao": "Foco: Manicure e Designer de Unhas",
+        "whatsapp": "47999999998"
     },
     {
         "nome": "Marcos Lima",
         "categoria": "Manutenção",
-        "localizacao": "Toda a Região Periférica",
-        "especialidade": "Eletricista Residencial",
-        "telefone": "5547977777777"
+        "bairro": "Toda a Região Periférica",
+        "descricao": "Foco: Eletricista Residencial",
+        "whatsapp": "47999999997"
     }
 ]
 
-
-@app.route('/', methods=['GET', 'POST'])
+@app.route("/", methods=["GET", "POST"])
 def index():
-    # Se o método for POST, significa que o formulário de cadastro foi enviado
-    if request.method == 'POST':
-        novo_profissional = {
-            "nome": request.form.get('nome').strip(),
-            "categoria": request.form.get('categoria'),
-            "localizacao": request.form.get('localizacao').strip(),
-            "especialidade": request.form.get('especialidade').strip(),
-            "telefone": request.form.get('telefone').strip().replace(' ', '').replace('-', '')
-        }
-        
-        # Validação simples para garantir que campos obrigatórios foram preenchidos
-        if novo_profissional["nome"] and novo_profissional["telefone"]:
-            profissionais.append(novo_profissional)
-            
-        # Redireciona para a mesma página (limpa o formulário e atualiza a lista)
-        return redirect(url_for('index'))
-
-    # Tratamento da busca (Método GET)
-    busca = request.args.get('search', '').strip().lower()
+    # Sistema de busca por texto
+    if request.method == "POST":
+        termo = request.form.get("pesquisa", "").lower()
+        resultados = [
+            p for p in prestadores 
+            if termo in p["nome"].lower() or termo in p["bairro"].lower() or termo in p["descricao"].lower()
+        ]
+        return render_template("index.html", prestadores=resultados)
     
-    if not busca:
-        return render_template('index.html', profissionais=profissionais, busca=busca)
-    
-    profissionais_filtrados = []
-    for p in profissionais:
-        if (busca in p['nome'].lower() or 
-            busca in p['categoria'].lower() or 
-            busca in p['localizacao'].lower() or 
-            busca in p['especialidade'].lower()):
-            profissionais_filtrados.append(p)
-            
-    return render_template('index.html', profissionais=profissionais_filtrados, busca=busca)
+    # Sistema de filtros por botões de categoria
+    categoria_filtrada = request.args.get("categoria")
+    if categoria_filtrada:
+        resultados = [p for p in prestadores if p["categoria"] == categoria_filtrada]
+        return render_template("index.html", prestadores=resultados)
 
+    return render_template("index.html", prestadores=prestadores)
 
-if __name__ == '__main__':
+@app.route("/cadastrar", methods=["POST"])
+def cadastrar():
+    # Recebe os dados enviados pelo formulário flutuante (Modal)
+    novo_prestador = {
+        "nome": request.form.get("nome"),
+        "categoria": request.form.get("categoria"),
+        "bairro": request.form.get("bairro"),
+        "descricao": request.form.get("descricao"),
+        "whatsapp": request.form.get("whatsapp")
+    }
+    # Adiciona o novo profissional na lista em memória
+    prestadores.append(novo_prestador)
+    return redirect("/")
+
+if __name__ == "__main__":
     app.run(debug=True)
